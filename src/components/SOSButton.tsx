@@ -11,6 +11,7 @@ interface SOSButtonProps {
   delivery: DeliveryStatus;
   precision: LocationPrecision;
   batteryLevel: number;
+  locationName: string;
 }
 
 export function SOSButton({
@@ -21,9 +22,13 @@ export function SOSButton({
   delivery,
   precision,
   batteryLevel,
+  locationName,
 }: SOSButtonProps) {
   const [countdown, setCountdown] = useState(0);
   const [holding, setHolding] = useState(false);
+  const [showHint, setShowHint] = useState(() => {
+    try { return localStorage.getItem('veya-sos-hint-seen') !== 'true'; } catch { return true; }
+  });
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const haptic = useHaptic();
@@ -66,7 +71,7 @@ export function SOSButton({
   }, [countdown > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (active) {
-    return <SOSActivePanel onDeactivate={onDeactivate} primaryContactName={primaryContactName} delivery={delivery} precision={precision} batteryLevel={batteryLevel} />;
+    return <SOSActivePanel onDeactivate={onDeactivate} primaryContactName={primaryContactName} delivery={delivery} precision={precision} batteryLevel={batteryLevel} locationName={locationName} />;
   }
 
   if (countdown > 0) {
@@ -97,17 +102,38 @@ export function SOSButton({
     );
   }
 
+  const dismissHint = () => {
+    setShowHint(false);
+    try { localStorage.setItem('veya-sos-hint-seen', 'true'); } catch { /* storage unavailable */ }
+  };
+
   return (
-    <button
-      onPointerDown={startHold}
-      onPointerUp={cancelHold}
-      onPointerLeave={cancelHold}
-      className={`fixed bottom-24 right-4 z-30 flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white shadow-lg glow-sos transition-transform active:scale-90 ${holding ? 'scale-110' : ''}`}
-      aria-label="SOS — hold to activate emergency alert"
-    >
-      <div className="absolute inset-0 rounded-full bg-red-500/40 animate-pulse-ring" />
-      <span className="relative text-sm font-extrabold tracking-wider">SOS</span>
-    </button>
+    <>
+      {showHint && !countdown && (
+        <div className="fixed bottom-44 right-4 z-30 max-w-[200px] animate-slide-up">
+          <div className="relative rounded-xl glass border border-veya-border px-3 py-2.5 text-[10px] text-veya-text-dim leading-tight">
+            Tap and hold, or tap once for a cancel window
+            <button
+              onClick={dismissHint}
+              className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-veya-surface-2 border border-veya-border text-veya-text-dim/60 text-[10px] leading-none"
+              aria-label="Dismiss hint"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+      <button
+        onPointerDown={startHold}
+        onPointerUp={cancelHold}
+        onPointerLeave={cancelHold}
+        className={`fixed bottom-24 right-4 z-30 flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white shadow-lg glow-sos transition-transform active:scale-90 ${holding ? 'scale-110' : ''}`}
+        aria-label="SOS — hold to activate emergency alert"
+      >
+        <div className="absolute inset-0 rounded-full bg-red-500/40 animate-pulse-ring" />
+        <span className="relative text-sm font-extrabold tracking-wider">SOS</span>
+      </button>
+    </>
   );
 }
 
@@ -117,12 +143,14 @@ function SOSActivePanel({
   delivery,
   precision,
   batteryLevel,
+  locationName,
 }: {
   onDeactivate: () => void;
   primaryContactName: string;
   delivery: DeliveryStatus;
   precision: LocationPrecision;
   batteryLevel: number;
+  locationName: string;
 }) {
   const deliveryConfig = {
     sent: { icon: '✓', text: 'Sent', color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
@@ -146,7 +174,14 @@ function SOSActivePanel({
           Your location and battery update is being shared with your trusted contacts.
         </p>
 
-        <div className="mt-8 w-full max-w-sm space-y-3">
+        <div className="mt-5 w-full max-w-sm rounded-xl border border-red-500/20 bg-red-500/5 p-3.5">
+          <p className="text-[10px] font-bold tracking-wide text-red-400/70 mb-1">MESSAGE SENT</p>
+          <p className="text-xs text-veya-text-dim italic leading-relaxed">
+            "Hey, I might need help. Last known location: {locationName}. Battery: {batteryLevel}%."
+          </p>
+        </div>
+
+        <div className="mt-4 w-full max-w-sm space-y-3">
           <div className="flex items-center gap-3 rounded-xl border border-veya-border bg-veya-surface p-4">
             <MapPin size={20} className="text-veya-lavender-bright" />
             <div className="flex-1">

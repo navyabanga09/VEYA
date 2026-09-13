@@ -16,6 +16,7 @@ interface HomeScreenProps {
   batteryLevel: number;
   onSelectDestination: (dest: Location) => void;
   cachedRoutes: unknown;
+  userName: string;
 }
 
 export function HomeScreen({
@@ -26,12 +27,16 @@ export function HomeScreen({
   onToggleOffline,
   batteryLevel,
   onSelectDestination,
+  userName,
 }: HomeScreenProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const now = useMemo(() => formatTimestamp(new Date()), []);
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'GOOD MORNING' : hour < 17 ? 'GOOD AFTERNOON' : 'GOOD EVENING';
+  const isLateNight = hour < 5 || hour >= 22;
+  const greeting = isLateNight
+    ? 'Late night, smart moves. 🖤'
+    : `${hour < 12 ? 'GOOD MORNING' : hour < 17 ? 'GOOD AFTERNOON' : 'GOOD EVENING'}, ${userName.toUpperCase()}!`;
 
   const filteredDest = destinations.filter((d) =>
     d.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -53,7 +58,7 @@ export function HomeScreen({
       <div className="sticky top-0 z-20 glass border-b border-veya-border px-5 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold tracking-wider text-veya-text-dim">{greeting}, GIRL.</p>
+            <p className="text-xs font-semibold tracking-wider text-veya-text-dim">{greeting}</p>
             <p className="text-lg font-extrabold font-display text-veya-text">Where are we going?</p>
           </div>
           <div className="flex items-center gap-2">
@@ -125,6 +130,9 @@ export function HomeScreen({
           timestamp={now}
           compact
         />
+        <p className="mt-1.5 text-[10px] text-veya-text-dim/40 px-1">
+          Powered by predictive risk modeling (simulated for demo).
+        </p>
       </div>
 
       {/* Nearby section */}

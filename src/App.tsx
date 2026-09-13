@@ -20,6 +20,7 @@ function App() {
   const [incidents, setIncidents] = useLocalStorage<IncidentReport[]>('veya-incidents', []);
   const [savedSpots, setSavedSpots] = useLocalStorage<SafeSpot[]>('veya-saved-spots', []);
   const [contacts, setContacts] = useLocalStorage('veya-contacts', trustedContacts);
+  const [userName] = useLocalStorage<string>('veya-username', 'Girl');
 
   // SOS state
   const [sosActive, setSosActive] = useState(false);
@@ -75,6 +76,7 @@ function App() {
           batteryLevel={batteryLevel}
           onSelectDestination={handleSelectDestination}
           cachedRoutes={null}
+          userName={userName}
         />
       )}
 
@@ -96,6 +98,7 @@ function App() {
           offline={offline}
           savedSpots={savedSpots}
           onSaveSpots={setSavedSpots}
+          onSOS={handleSOSActivate}
         />
       )}
 
@@ -107,6 +110,7 @@ function App() {
           onToggleOffline={setOffline}
           batteryLevel={batteryLevel}
           onSetBattery={setBatteryLevel}
+          userName={userName}
         />
       )}
 
@@ -120,6 +124,7 @@ function App() {
         delivery={sosDelivery}
         precision={sosPrecision}
         batteryLevel={batteryLevel}
+        locationName={`${currentLocation.name}, ${currentLocation.area}`}
       />
     </div>
   );

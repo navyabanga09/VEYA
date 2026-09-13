@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Shield, Store, Hospital, Building2, Phone, Download, Check, ChevronDown, MapPin, Wifi, Info, AlertTriangle } from 'lucide-react';
+import { Shield, Store, Hospital, Building2, Phone, Download, Check, ChevronDown, MapPin, Wifi, Info, AlertTriangle, Battery, Share2, Eye, Heart, Zap } from 'lucide-react';
 import { safeSpots, helplineDirectory, stateList } from '@/data/mockData';
 import { formatTimestamp } from '@/components/Timestamp';
 import { useHaptic } from '@/hooks/useHaptic';
@@ -9,9 +9,10 @@ interface SafetyScreenProps {
   offline: boolean;
   savedSpots: SafeSpot[];
   onSaveSpots: (spots: SafeSpot[]) => void;
+  onSOS: () => void;
 }
 
-export function SafetyScreen({ offline, savedSpots, onSaveSpots }: SafetyScreenProps) {
+export function SafetyScreen({ offline, savedSpots, onSaveSpots, onSOS }: SafetyScreenProps) {
   const [selectedState, setSelectedState] = useState('delhi');
   const [stateDropdownOpen, setStateDropdownOpen] = useState(false);
   const [downloadToast, setDownloadToast] = useState(false);
@@ -31,11 +32,41 @@ export function SafetyScreen({ offline, savedSpots, onSaveSpots }: SafetyScreenP
 
   const spotIcons = { store: Store, police: Shield, hospital: Hospital, metro: Building2, cafe: Store };
 
+  const safetyKitCards = [
+    { icon: Battery, title: 'Keep your phone ready', desc: 'Battery + emergency contacts accessible' },
+    { icon: Share2, title: 'Share your plans', desc: 'Let someone you trust know where you\'re headed' },
+    { icon: Eye, title: 'Stay aware', desc: 'Pay attention to your surroundings' },
+    { icon: Heart, title: 'Trust your instincts', desc: 'Move toward a public place if something feels wrong' },
+  ];
+
   return (
     <div className="min-h-screen bg-veya-bg pb-24 safe-top">
       <div className="sticky top-0 z-20 glass border-b border-veya-border px-5 py-4">
         <h1 className="text-xl font-extrabold font-display">Safety</h1>
         <p className="text-xs text-veya-text-dim">Safe spots, helplines & offline tools</p>
+      </div>
+
+      {/* Safety Kit */}
+      <div className="px-5 mt-4">
+        <h2 className="text-lg font-extrabold font-display">YOUR SAFETY KIT 🖤</h2>
+        <p className="mt-0.5 text-xs text-veya-text-dim">Stay ready. Stay in control.</p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          {safetyKitCards.map((card, i) => {
+            const Icon = card.icon;
+            return (
+              <div
+                key={i}
+                className="rounded-2xl border border-veya-border bg-gradient-to-br from-veya-surface to-veya-surface-2 p-4 transition-transform active:scale-[0.98]"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-veya-bg/50">
+                  <Icon size={18} className="text-veya-lavender-bright" />
+                </div>
+                <p className="mt-2.5 text-sm font-bold text-veya-text leading-tight">{card.title}</p>
+                <p className="mt-1 text-[11px] text-veya-text-dim leading-relaxed">{card.desc}</p>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Safe spots */}
@@ -201,6 +232,21 @@ export function SafetyScreen({ offline, savedSpots, onSaveSpots }: SafetyScreenP
           <Check size={16} className="inline mr-1" /> Saved {safeSpots.length} spots for offline
         </div>
       )}
+
+      {/* Need Help */}
+      <div className="px-5 mt-5">
+        <div className="rounded-2xl border border-red-500/20 bg-gradient-to-br from-red-500/5 to-transparent p-5">
+          <p className="text-sm font-bold tracking-wide text-veya-text">NEED HELP RIGHT NOW?</p>
+          <p className="mt-1 text-xs text-veya-text-dim">Press and hold the SOS button to alert your trusted contacts instantly.</p>
+          <button
+            onClick={onSOS}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-red-500 py-3.5 text-sm font-bold text-white transition-transform active:scale-95 glow-sos"
+          >
+            <Zap size={18} />
+            SOS
+          </button>
+        </div>
+      </div>
 
       {/* Prototype notice */}
       <div className="px-5 mt-4">

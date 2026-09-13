@@ -13,9 +13,10 @@ interface MeScreenProps {
   onToggleOffline: (v: boolean) => void;
   batteryLevel: number;
   onSetBattery: (v: number) => void;
+  userName: string;
 }
 
-export function MeScreen({ nightMode, onToggleNight, offline, onToggleOffline, batteryLevel, onSetBattery }: MeScreenProps) {
+export function MeScreen({ nightMode, onToggleNight, offline, onToggleOffline, batteryLevel, onSetBattery, userName }: MeScreenProps) {
   const [contacts, setContacts] = useLocalStorage<TrustedContact[]>('veya-contacts', trustedContacts);
   const [evidence, setEvidence] = useLocalStorage<EvidenceItem[]>('veya-evidence', []);
   const [addContactOpen, setAddContactOpen] = useState(false);
@@ -109,7 +110,7 @@ export function MeScreen({ nightMode, onToggleNight, offline, onToggleOffline, b
             <User size={24} className="text-veya-lavender-bright" />
           </div>
           <div>
-            <p className="text-base font-bold font-display">Hey, girl.</p>
+            <p className="text-base font-bold font-display">Hey, {userName}.</p>
             <p className="text-xs text-veya-text-dim">Demo profile · No account needed</p>
           </div>
         </div>

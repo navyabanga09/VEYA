@@ -237,9 +237,7 @@ export const helplineDirectory: HelplineDirectory = {
     delhi: [
       { name: 'Delhi Women Helpline', number: '181', description: '24/7 Delhi women in distress' },
       { name: 'Delhi Police Control Room', number: '100', description: 'Delhi Police' },
-      { name: 'DCW Helpline', number: '011-23370557', description: 'Delhi Commission for Women' },
       { name: 'Shakti Camp (Women Safety)', number: '1091', description: 'Delhi women safety patrol' },
-      { name: 'Nirbhaya Helpline', number: '011-24673999', description: 'Nirbhaya Fund initiative' },
     ],
     maharashtra: [
       { name: 'Women Helpline', number: '1291', description: 'Maharashtra state women helpline' },

@@ -280,7 +280,7 @@ export function NavigateScreen({
           <div className="flex items-start gap-2">
             <Info size={14} className="mt-0.5 text-veya-text-dim shrink-0" />
             <p className="text-[11px] leading-relaxed text-veya-text-dim">
-              Safety scores are assessments based on available data (lighting, crowd, recent reports) — not a guarantee of safety.
+              Predicted safety scores are AI-assessed based on available data (lighting, crowd, recent reports) — not a guarantee of safety.
               Always trust your instincts.
             </p>
           </div>
@@ -344,7 +344,7 @@ export function NavigateScreen({
                   <Check size={32} className="text-emerald-400" />
                 </div>
                 <p className="mt-4 text-base font-bold text-veya-text">Report submitted</p>
-                <p className="mt-1 text-xs text-veya-text-dim">Route segment updated. Thank you for contributing.</p>
+                <p className="mt-1 text-xs text-veya-text-dim">Route segment updated. Thanks — this helps improve our safety predictions for everyone.</p>
               </div>
             ) : (
               <>
@@ -373,6 +373,7 @@ export function NavigateScreen({
                 </div>
 
                 <p className="mb-2 mt-4 text-xs font-semibold text-veya-text-dim">NOTE (OPTIONAL)</p>
+                <p className="mb-2 text-[10px] text-veya-text-dim/50">No personal information is attached to this report.</p>
                 <textarea
                   value={reportNote}
                   onChange={(e) => setReportNote(e.target.value)}
@@ -434,7 +435,8 @@ function SegmentCard({ segment, index }: { segment: RouteSegment; index: number 
         </div>
         <SafetyBadge level={segment.safety} size="xs" />
       </div>
-      <div className="mt-2 grid grid-cols-3 gap-2 text-[10px]">
+      <p className="mt-2 text-[10px] font-semibold text-veya-lavender-bright/60">AI-assessed factors:</p>
+      <div className="mt-1 grid grid-cols-3 gap-2 text-[10px]">
         <div>
           <p className="text-veya-text-dim/50">Lighting</p>
           <p className="text-veya-text-dim">{segment.lighting}</p>
