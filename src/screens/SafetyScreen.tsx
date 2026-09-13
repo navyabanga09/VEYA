@@ -23,8 +23,19 @@ export function SafetyScreen({ offline, savedSpots, onSaveSpots, onSOS }: Safety
   const isKnownState = helplineDirectory.states[selectedState] !== undefined;
   const helplines = isKnownState ? helplineDirectory.states[selectedState] : helplineDirectory.national;
 
+  const MAX_OFFLINE = 3;
+  const [storageMsg, setStorageMsg] = useState(false);
+
   const handleSaveOffline = () => {
-    onSaveSpots(safeSpots);
+    const current = [...savedSpots];
+    const toAdd = safeSpots.filter((s) => !current.find((c) => c.id === s.id));
+    let updated = [...current, ...toAdd];
+    if (updated.length > MAX_OFFLINE) {
+      updated = updated.slice(updated.length - MAX_OFFLINE);
+      setStorageMsg(true);
+      setTimeout(() => setStorageMsg(false), 3000);
+    }
+    onSaveSpots(updated);
     haptic('success');
     setDownloadToast(true);
     setTimeout(() => setDownloadToast(false), 2500);
@@ -81,7 +92,7 @@ export function SafetyScreen({ offline, savedSpots, onSaveSpots, onSOS }: Safety
           className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-veya-lavender-bright/30 bg-veya-lavender-bright/5 px-4 py-3 text-sm font-bold text-veya-lavender-bright transition-colors active:scale-[0.98]"
         >
           <Download size={16} />
-          SAVE FOR OFFLINE ({savedSpots.length} saved)
+          SAVE FOR OFFLINE ({savedSpots.length}/{MAX_OFFLINE} saved)
         </button>
 
         <div className="space-y-2">
@@ -229,7 +240,14 @@ export function SafetyScreen({ offline, savedSpots, onSaveSpots, onSOS }: Safety
       {/* Download toast */}
       {downloadToast && (
         <div className="fixed bottom-28 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 px-5 py-3 text-sm font-bold text-emerald-300 animate-slide-up">
-          <Check size={16} className="inline mr-1" /> Saved {safeSpots.length} spots for offline
+          <Check size={16} className="inline mr-1" /> Saved for offline ({savedSpots.length}/{MAX_OFFLINE})
+        </div>
+      )}
+
+      {/* Storage limit message */}
+      {storageMsg && (
+        <div className="fixed bottom-44 left-1/2 z-50 -translate-x-1/2 max-w-[280px] rounded-xl bg-amber-500/15 border border-amber-500/30 px-4 py-2.5 text-xs font-semibold text-amber-300 text-center animate-slide-up">
+          Offline storage limited to {MAX_OFFLINE} spots for this demo. Oldest replaced.
         </div>
       )}
 

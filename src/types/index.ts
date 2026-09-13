@@ -73,6 +73,7 @@ export interface IncidentReport {
   type: string;
   note: string;
   timestamp: number;
+  severity: 'low' | 'medium' | 'high';
 }
 
 export interface EvidenceItem {

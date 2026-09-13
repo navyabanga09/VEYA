@@ -259,6 +259,21 @@ export const incidentTypes = [
   'Other',
 ];
 
+export const incidentSeverity: Record<string, 'low' | 'medium' | 'high'> = {
+  'Poor lighting': 'low',
+  'Harassment': 'high',
+  'Suspicious activity': 'high',
+  'Unsafe crowd': 'medium',
+  'Blocked path': 'low',
+  'Other': 'medium',
+};
+
+export const incidentScoreImpact: Record<string, number> = {
+  low: 15,
+  medium: 25,
+  high: 40,
+};
+
 export const stateList = [
   { id: 'delhi', name: 'Delhi' },
   { id: 'maharashtra', name: 'Maharashtra' },

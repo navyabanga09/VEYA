@@ -1,11 +1,10 @@
-import { useState, useMemo, useCallback } from 'react';
-import { ArrowLeft, Clock, Route as RouteIcon, Flag, X, Check, ChevronDown, ChevronRight, BatteryLow, Navigation as NavIcon, MapPin, Info } from 'lucide-react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { ArrowLeft, Clock, Route as RouteIcon, Flag, X, Check, ChevronDown, ChevronRight, BatteryLow, Navigation as NavIcon, MapPin, Info, Send, Clock as ClockIcon } from 'lucide-react';
 import { MapMockup } from '@/components/MapMockup';
 import { RouteCard } from '@/components/RouteCard';
 import { SafetyBadge } from '@/components/SafetyBadge';
-import { Toggle } from '@/components/Toggle';
 import { formatTimestamp } from '@/components/Timestamp';
-import { routes as defaultRoutes, currentLocation, safeSpots, incidentTypes } from '@/data/mockData';
+import { routes as defaultRoutes, currentLocation, safeSpots, incidentTypes, incidentSeverity, incidentScoreImpact } from '@/data/mockData';
 import type { Location, RouteOption, SafetyLevel, IncidentReport, RouteSegment } from '@/types';
 import { useHaptic } from '@/hooks/useHaptic';
 
@@ -36,8 +35,13 @@ export function NavigateScreen({
   const [reportType, setReportType] = useState(incidentTypes[0]);
   const [reportNote, setReportNote] = useState('');
   const [reportSubmitted, setReportSubmitted] = useState(false);
+  const [reportSegmentId, setReportSegmentId] = useState<string | null>(null);
   const [navigating, setNavigating] = useState(false);
   const [arrived, setArrived] = useState(false);
+  const [showLateCheckIn, setShowLateCheckIn] = useState(false);
+  const [checkInSent, setCheckInSent] = useState(false);
+  const [currentSegmentIdx, setCurrentSegmentIdx] = useState(0);
+  const navStartRef = useRef<number>(0);
   const haptic = useHaptic();
 
   const now = useMemo(() => formatTimestamp(new Date()), []);
@@ -45,17 +49,40 @@ export function NavigateScreen({
   const routes = useMemo(() => {
     return defaultRoutes.map((route) => {
       const updatedSegments = route.segments.map((seg) => {
-        const incident = incidents.find((i) => i.segmentId === seg.id);
-        if (incident) {
-          const newSafety: SafetyLevel = seg.safety === 'safe' ? 'caution' : 'risk';
-          return { ...seg, safety: newSafety, recentActivity: `Reported: ${incident.type}` };
+        const segIncidents = incidents.filter((i) => i.segmentId === seg.id);
+        if (segIncidents.length === 0) return seg;
+
+        let scorePenalty = 0;
+        for (const inc of segIncidents) {
+          scorePenalty += incidentScoreImpact[inc.severity] ?? 20;
         }
-        return seg;
+
+        const originalScore = seg.safety === 'safe' ? 90 : seg.safety === 'caution' ? 60 : 30;
+        const newScore = Math.max(10, originalScore - scorePenalty);
+
+        let newSafety: SafetyLevel;
+        if (newScore >= 70) newSafety = 'safe';
+        else if (newScore >= 40) newSafety = 'caution';
+        else newSafety = 'risk';
+
+        const latestIncident = segIncidents[segIncidents.length - 1];
+        return {
+          ...seg,
+          safety: newSafety,
+          recentActivity: `Reported: ${latestIncident.type}`,
+        };
       });
+
       const hasRisk = updatedSegments.some((s) => s.safety === 'risk');
       const hasCaution = updatedSegments.some((s) => s.safety === 'caution');
       const newLevel: SafetyLevel = hasRisk ? 'risk' : hasCaution ? 'caution' : 'safe';
-      return { ...route, segments: updatedSegments, safetyLevel: newLevel };
+
+      const totalPenalty = incidents
+        .filter((i) => route.segments.some((s) => s.id === i.segmentId))
+        .reduce((sum, i) => sum + (incidentScoreImpact[i.severity] ?? 20), 0);
+      const newScore = Math.max(10, route.safetyScore - Math.round(totalPenalty / route.segments.length));
+
+      return { ...route, segments: updatedSegments, safetyLevel: newLevel, safetyScore: newScore };
     });
   }, [incidents]);
 
@@ -66,15 +93,23 @@ export function NavigateScreen({
     haptic('light');
   }, [haptic]);
 
+  const handleOpenReport = (segmentId?: string) => {
+    setReportSegmentId(segmentId ?? selectedRoute.segments[0]?.id ?? null);
+    setReportOpen(true);
+  };
+
   const handleSubmitReport = () => {
-    const targetSegment = selectedRoute.segments[0];
+    const targetSegmentId = reportSegmentId ?? selectedRoute.segments[0]?.id;
+    if (!targetSegmentId) return;
+    const severity = incidentSeverity[reportType] ?? 'medium';
     const report: IncidentReport = {
       id: `inc-${Date.now()}`,
       routeId: selectedRouteId,
-      segmentId: targetSegment.id,
+      segmentId: targetSegmentId,
       type: reportType,
       note: reportNote,
       timestamp: Date.now(),
+      severity,
     };
     onReportIncident(report);
     haptic('success');
@@ -83,7 +118,27 @@ export function NavigateScreen({
       setReportOpen(false);
       setReportSubmitted(false);
       setReportNote('');
+      setReportSegmentId(null);
     }, 2000);
+  };
+
+  // Late-arrival check-in timer
+  useEffect(() => {
+    if (!navigating || arrived) return;
+    navStartRef.current = Date.now();
+    setShowLateCheckIn(false);
+    setCheckInSent(false);
+    const bufferMs = (selectedRoute.durationMin + 2) * 60 * 1000;
+    const timer = setTimeout(() => {
+      if (!arrived) setShowLateCheckIn(true);
+    }, Math.min(bufferMs, 15000));
+    return () => clearTimeout(timer);
+  }, [navigating, arrived, selectedRoute.durationMin]);
+
+  const handleSendCheckIn = () => {
+    setCheckInSent(true);
+    setShowLateCheckIn(false);
+    haptic('success');
   };
 
   if (!destination) {
@@ -154,9 +209,9 @@ export function NavigateScreen({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-veya-text-dim">CURRENT SEGMENT</p>
-                <p className="text-sm font-bold text-veya-text">{selectedRoute.segments[0].name}</p>
+                <p className="text-sm font-bold text-veya-text">{selectedRoute.segments[currentSegmentIdx].name}</p>
               </div>
-              <SafetyBadge level={selectedRoute.segments[0].safety} />
+              <SafetyBadge level={selectedRoute.segments[currentSegmentIdx].safety} />
             </div>
             <div className="mt-3 flex items-center gap-4">
               <div className="flex items-center gap-1.5">
@@ -171,11 +226,13 @@ export function NavigateScreen({
             </div>
             <div className="mt-3 flex items-center gap-2">
               {selectedRoute.segments.map((seg, i) => (
-                <div
+                <button
                   key={seg.id}
-                  className={`h-1.5 flex-1 rounded-full ${
+                  onClick={() => setCurrentSegmentIdx(i)}
+                  className={`h-1.5 flex-1 rounded-full transition-all ${
                     seg.safety === 'safe' ? 'bg-emerald-400' : seg.safety === 'caution' ? 'bg-amber-400' : 'bg-red-400'
-                  } ${i === 0 ? 'opacity-100' : 'opacity-40'}`}
+                  } ${i === currentSegmentIdx ? 'opacity-100' : 'opacity-40'}`}
+                  aria-label={`View segment ${i + 1}: ${seg.name}`}
                 />
               ))}
             </div>
@@ -187,6 +244,40 @@ export function NavigateScreen({
             </button>
           </div>
         </div>
+
+        {/* Late check-in banner */}
+        {showLateCheckIn && !checkInSent && (
+          <div className="fixed bottom-24 left-4 right-4 z-40 animate-slide-up">
+            <div className="rounded-2xl border border-veya-lavender-bright/30 bg-veya-surface-2 p-4 glass">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-veya-lavender-bright/15 shrink-0">
+                  <ClockIcon size={18} className="text-veya-lavender-bright" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-veya-text">You haven't checked in yet</p>
+                  <p className="mt-0.5 text-xs text-veya-text-dim">Send a quick update to your trusted contacts?</p>
+                  <button
+                    onClick={handleSendCheckIn}
+                    className="mt-3 flex items-center gap-2 rounded-lg bg-veya-lavender-bright/20 border border-veya-lavender-bright/30 px-4 py-2 text-xs font-bold text-veya-lavender-bright active:scale-95"
+                  >
+                    <Send size={14} /> STILL ON MY WAY
+                  </button>
+                </div>
+                <button onClick={() => setShowLateCheckIn(false)} className="text-veya-text-dim/40 p-1" aria-label="Dismiss">
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {checkInSent && (
+          <div className="fixed bottom-24 left-1/2 z-40 -translate-x-1/2 animate-slide-up">
+            <div className="flex items-center gap-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 px-4 py-2.5 text-xs font-bold text-emerald-300">
+              <Check size={14} /> Update sent to your circle
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -300,7 +391,15 @@ export function NavigateScreen({
         {showSegments && (
           <div className="mt-3 space-y-2 animate-slide-up">
             {selectedRoute.segments.map((seg, i) => (
-              <SegmentCard key={seg.id} segment={seg} index={i} />
+              <div key={seg.id}>
+                <SegmentCard segment={seg} index={i} />
+                <button
+                  onClick={() => handleOpenReport(seg.id)}
+                  className="mt-1 ml-auto flex items-center gap-1 text-[10px] font-semibold text-amber-400/70 hover:text-amber-400"
+                >
+                  <Flag size={10} /> Report issue on this segment
+                </button>
+              </div>
             ))}
           </div>
         )}
@@ -309,7 +408,7 @@ export function NavigateScreen({
       {/* Report incident */}
       <div className="px-5 mt-5">
         <button
-          onClick={() => setReportOpen(true)}
+          onClick={() => handleOpenReport()}
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3.5 text-sm font-bold text-amber-300 transition-colors active:scale-[0.98]"
         >
           <Flag size={16} />
@@ -355,6 +454,12 @@ export function NavigateScreen({
                   </button>
                 </div>
 
+                {reportSegmentId && (
+                  <p className="mb-3 text-[11px] text-veya-text-dim/60">
+                    Reporting on: <span className="font-semibold text-veya-text">{selectedRoute.segments.find((s) => s.id === reportSegmentId)?.name ?? 'this segment'}</span>
+                  </p>
+                )}
+
                 <p className="mb-2 text-xs font-semibold text-veya-text-dim">ISSUE TYPE</p>
                 <div className="flex flex-wrap gap-2">
                   {incidentTypes.map((type) => (
@@ -373,7 +478,7 @@ export function NavigateScreen({
                 </div>
 
                 <p className="mb-2 mt-4 text-xs font-semibold text-veya-text-dim">NOTE (OPTIONAL)</p>
-                <p className="mb-2 text-[10px] text-veya-text-dim/50">No personal information is attached to this report.</p>
+                <p className="mb-2 text-[10px] text-veya-text-dim/50">Reports are submitted anonymously — no personal information is attached.</p>
                 <textarea
                   value={reportNote}
                   onChange={(e) => setReportNote(e.target.value)}

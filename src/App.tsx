@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { WelcomeScreen } from '@/screens/WelcomeScreen';
+import { Onboarding } from '@/components/Onboarding';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { NavigateScreen } from '@/screens/NavigateScreen';
 import { SafetyScreen } from '@/screens/SafetyScreen';
@@ -21,6 +22,7 @@ function App() {
   const [savedSpots, setSavedSpots] = useLocalStorage<SafeSpot[]>('veya-saved-spots', []);
   const [contacts, setContacts] = useLocalStorage('veya-contacts', trustedContacts);
   const [userName] = useLocalStorage<string>('veya-username', 'Girl');
+  const [onboardingDone, setOnboardingDone] = useLocalStorage<boolean>('veya-onboarding-done', false);
 
   // SOS state
   const [sosActive, setSosActive] = useState(false);
@@ -62,6 +64,10 @@ function App() {
 
   if (showWelcome) {
     return <WelcomeScreen onStart={() => setShowWelcome(false)} />;
+  }
+
+  if (!onboardingDone) {
+    return <Onboarding onComplete={() => setOnboardingDone(true)} />;
   }
 
   return (
