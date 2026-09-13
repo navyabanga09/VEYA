@@ -1,0 +1,188 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --veya-bg: #0a0a0f;
+    --veya-surface: #15151f;
+    --veya-surface-2: #1c1c28;
+    --veya-border: #2a2a3a;
+    --veya-text: #f5f5f7;
+    --veya-text-dim: #9ca3af;
+    --veya-lavender: #c4b5fd;
+    --veya-lavender-bright: #a78bfa;
+    --veya-chrome: #e2e8f0;
+    --veya-safe: #34d399;
+    --veya-caution: #fbbf24;
+    --veya-risk: #f87171;
+    --veya-sos: #ef4444;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    overscroll-behavior: none;
+  }
+
+  body {
+    margin: 0;
+    background: var(--veya-bg);
+    color: var(--veya-text);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sora', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Sora', system-ui, sans-serif;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .glass {
+    background: rgba(21, 21, 31, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .glass-light {
+    background: rgba(28, 28, 40, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .glow-lavender {
+    box-shadow: 0 0 20px rgba(167, 139, 250, 0.3), 0 0 40px rgba(167, 139, 250, 0.1);
+  }
+
+  .glow-safe {
+    box-shadow: 0 0 20px rgba(52, 211, 153, 0.25);
+  }
+
+  .glow-sos {
+    box-shadow: 0 0 24px rgba(239, 68, 68, 0.5), 0 0 48px rgba(239, 68, 68, 0.2);
+  }
+
+  .text-gradient-lavender {
+    background: linear-gradient(135deg, #c4b5fd, #a78bfa, #e2e8f0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-pulse-ring {
+    animation: pulseRing 1.5s ease-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+  }
+
+  .animate-countdown {
+    animation: countdownPulse 1s ease-in-out infinite;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-sheet-up {
+    animation: sheetUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulseRing {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes countdownPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes dashMove {
+  to { stroke-dashoffset: -20; }
+}
+
+.route-dash {
+  stroke-dasharray: 8 4;
+  animation: dashMove 1.5s linear infinite;
+}
+
+@keyframes markerDrop {
+  0% { transform: translateY(-20px) scale(0.5); opacity: 0; }
+  60% { transform: translateY(2px) scale(1.1); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.marker-drop {
+  animation: markerDrop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
