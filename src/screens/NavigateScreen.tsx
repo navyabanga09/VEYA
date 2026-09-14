@@ -1,10 +1,11 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { ArrowLeft, Clock, Route as RouteIcon, Flag, X, Check, ChevronDown, ChevronRight, BatteryLow, Navigation as NavIcon, MapPin, Info, Send, Clock as ClockIcon } from 'lucide-react';
+import { ArrowLeft, Clock, Route as RouteIcon, Flag, X, Check, ChevronDown, ChevronRight, BatteryLow, Navigation as NavIcon, MapPin, Info, Send, Clock as ClockIcon, AlertTriangle } from 'lucide-react';
 import { MapMockup } from '@/components/MapMockup';
 import { RouteCard } from '@/components/RouteCard';
 import { SafetyBadge } from '@/components/SafetyBadge';
 import { formatTimestamp } from '@/components/Timestamp';
-import { routes as defaultRoutes, currentLocation, safeSpots, incidentTypes, incidentSeverity, incidentScoreImpact } from '@/data/mockData';
+import { routes as defaultRoutes, currentLocation, safeSpots, incidentTypes, incidentSeverity, incidentScoreImpact, travelModeAdjustments } from '@/data/mockData';
+import type { TravelMode as TM } from '@/data/mockData';
 import type { Location, RouteOption, SafetyLevel, IncidentReport, RouteSegment } from '@/types';
 import { useHaptic } from '@/hooks/useHaptic';
 
@@ -41,13 +42,18 @@ export function NavigateScreen({
   const [showLateCheckIn, setShowLateCheckIn] = useState(false);
   const [checkInSent, setCheckInSent] = useState(false);
   const [currentSegmentIdx, setCurrentSegmentIdx] = useState(0);
+  const [travelMode, setTravelMode] = useState<TM>('walking');
+  const [targetArrival, setTargetArrival] = useState('');
   const navStartRef = useRef<number>(0);
   const haptic = useHaptic();
 
   const now = useMemo(() => formatTimestamp(new Date()), []);
 
+  const modeAdj = travelModeAdjustments[travelMode];
+
   const routes = useMemo(() => {
     return defaultRoutes.map((route) => {
+      const adjustedDuration = Math.round(route.durationMin * modeAdj.durationMultiplier) + modeAdj.extraDurationMin;
       const updatedSegments = route.segments.map((seg) => {
         const segIncidents = incidents.filter((i) => i.segmentId === seg.id);
         if (segIncidents.length === 0) return seg;
@@ -82,11 +88,31 @@ export function NavigateScreen({
         .reduce((sum, i) => sum + (incidentScoreImpact[i.severity] ?? 20), 0);
       const newScore = Math.max(10, route.safetyScore - Math.round(totalPenalty / route.segments.length));
 
-      return { ...route, segments: updatedSegments, safetyLevel: newLevel, safetyScore: newScore };
+      const adjustedFactors = [...modeAdj.extraFactors, ...route.factors];
+      return { ...route, segments: updatedSegments, safetyLevel: newLevel, safetyScore: newScore, durationMin: adjustedDuration, factors: adjustedFactors };
     });
-  }, [incidents]);
+  }, [incidents, travelMode]);
 
   const selectedRoute = routes.find((r) => r.id === selectedRouteId) ?? routes[0];
+
+  const timingAnalysis = useMemo(() => {
+    if (!targetArrival) return null;
+    const parts = targetArrival.split(':');
+    if (parts.length < 2) return null;
+    const h = Number(parts[0]);
+    const m = Number(parts[1]);
+    if (isNaN(h) || isNaN(m)) return null;
+    const nowDate = new Date();
+    const target = new Date(nowDate);
+    target.setHours(h, m, 0, 0);
+    if (target < nowDate) target.setDate(target.getDate() + 1);
+    const diffMin = Math.round((target.getTime() - nowDate.getTime()) / 60000);
+    const canMakeIt = routes.map((r) => ({ route: r, canMake: r.durationMin <= diffMin }));
+    const anyCanMake = canMakeIt.some((c) => c.canMake);
+    const safeCanMake = canMakeIt.filter((c) => c.route.safetyLevel === 'safe' && c.canMake);
+    const onlyFastest = !safeCanMake.length && canMakeIt.filter((c) => c.canMake).every((c) => c.route.safetyLevel !== 'safe');
+    return { anyCanMake, safeCanMake: safeCanMake.length > 0, onlyFastest: onlyFastest && anyCanMake };
+  }, [targetArrival, routes]);
 
   const handleSelectRoute = useCallback((id: string) => {
     setSelectedRouteId(id);
@@ -333,6 +359,79 @@ export function NavigateScreen({
           interactive
         />
       </div>
+
+      {/* Travel mode selector */}
+      <div className="px-5 mt-4">
+        <p className="mb-2 text-xs font-semibold text-veya-text-dim">TRAVEL MODE</p>
+        <div className="flex gap-2">
+          {(['walking', 'car', 'metro'] as TM[]).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => { setTravelMode(mode); haptic('light'); }}
+              className={`flex-1 rounded-xl border py-2.5 text-xs font-bold capitalize transition-colors ${
+                travelMode === mode
+                  ? 'border-veya-lavender-bright bg-veya-lavender-bright/15 text-veya-lavender-bright'
+                  : 'border-veya-border bg-veya-surface text-veya-text-dim'
+              }`}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Arrival time picker */}
+      <div className="px-5 mt-3">
+        <div className="flex items-center gap-3 rounded-xl border border-veya-border bg-veya-surface px-4 py-3">
+          <Clock size={16} className="text-veya-text-dim shrink-0" />
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-veya-text-dim">What time do you want to arrive?</p>
+            <p className="text-[10px] text-veya-text-dim/50">Optional — skip to compare without timing</p>
+          </div>
+          <input
+            type="time"
+            value={targetArrival}
+            onChange={(e) => setTargetArrival(e.target.value)}
+            className="rounded-lg border border-veya-border bg-veya-bg/50 px-3 py-1.5 text-sm text-veya-text focus:border-veya-lavender-bright/40 focus:outline-none"
+            aria-label="Target arrival time"
+          />
+          {targetArrival && (
+            <button onClick={() => setTargetArrival('')} className="text-veya-text-dim/40" aria-label="Clear arrival time">
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Arrival timing analysis */}
+      {timingAnalysis && (
+        <div className="px-5 mt-3">
+          {!timingAnalysis.anyCanMake && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-veya-border bg-veya-surface/50 px-4 py-3">
+              <Info size={14} className="mt-0.5 text-veya-text-dim shrink-0" />
+              <p className="text-xs leading-relaxed text-veya-text-dim">
+                None of the available routes comfortably meet this timing — consider leaving earlier if possible.
+              </p>
+            </div>
+          )}
+          {timingAnalysis.onlyFastest && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+              <AlertTriangle size={14} className="mt-0.5 text-amber-400 shrink-0" />
+              <p className="text-xs leading-relaxed text-amber-300">
+                This is the only option that meets your timing, but it has a higher risk rating. If you choose it, stay alert — avoid distractions, keep your phone accessible, and consider sharing your live location with a trusted contact.
+              </p>
+            </div>
+          )}
+          {timingAnalysis.safeCanMake && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+              <Check size={14} className="mt-0.5 text-emerald-400 shrink-0" />
+              <p className="text-xs leading-relaxed text-emerald-300">
+                Safer routes can meet your arrival time. Smart move.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Route comparison */}
       <div className="px-5 mt-5">

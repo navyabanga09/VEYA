@@ -6,6 +6,8 @@ export type NavTab = 'home' | 'navigate' | 'safety' | 'me';
 
 export type RouteType = 'smart' | 'fastest' | 'balanced';
 
+export type TravelMode = 'walking' | 'car' | 'metro';
+
 export type DeliveryStatus = 'sent' | 'queued' | 'failed';
 
 export type LocationPrecision = 'precise' | 'approximate';

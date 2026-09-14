@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { Shield, Store, Hospital, Building2, X } from 'lucide-react';
 import type { GeoPoint, SafeSpot, RouteOption, SafetyLevel } from '@/types';
 
 interface MapMockupProps {
@@ -81,6 +82,7 @@ export function MapMockup({
   const svgRef = useRef<SVGSVGElement>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
+  const [selectedSpot, setSelectedSpot] = useState<SafeSpot | null>(null);
   const isDragging = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
 
@@ -171,7 +173,13 @@ export function MapMockup({
             {/* Safe spots */}
             {showSafeSpots &&
               safeSpots.map((spot) => (
-                <g key={spot.id} className="marker-drop" style={{ transformOrigin: `${spot.point.x}px ${spot.point.y}px` }}>
+                <g
+                  key={spot.id}
+                  className="marker-drop"
+                  style={{ transformOrigin: `${spot.point.x}px ${spot.point.y}px`, cursor: 'pointer' }}
+                  onClick={(e) => { e.stopPropagation(); setSelectedSpot(spot); }}
+                >
+                  <circle cx={spot.point.x} cy={spot.point.y} r="12" fill="transparent" />
                   <circle cx={spot.point.x} cy={spot.point.y} r="10" fill="#1c1c28" stroke={spot.verified ? '#34d399' : '#6b7280'} strokeWidth="2" />
                   {spot.type === 'police' && <path d={`M${spot.point.x - 4} ${spot.point.y - 1} L${spot.point.x} ${spot.point.y - 5} L${spot.point.x + 4} ${spot.point.y - 1} Z M${spot.point.x - 4} ${spot.point.y - 1} L${spot.point.x + 4} ${spot.point.y - 1} L${spot.point.x + 4} ${spot.point.y + 4} L${spot.point.x - 4} ${spot.point.y + 4} Z`} fill={spot.verified ? '#34d399' : '#6b7280'} />}
                   {spot.type === 'store' && <rect x={spot.point.x - 4} y={spot.point.y - 4} width="8" height="8" rx="1" fill={spot.verified ? '#34d399' : '#6b7280'} />}
@@ -238,6 +246,36 @@ export function MapMockup({
           }}
         >
           {destinationLabel}
+        </div>
+      )}
+
+      {/* Safe spot popup */}
+      {selectedSpot && (
+        <div className="absolute bottom-3 left-3 right-3 z-20 animate-slide-up">
+          <div className="flex items-start gap-3 rounded-xl glass border border-veya-border p-3.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-veya-bg/50 shrink-0">
+              {selectedSpot.type === 'police' && <Shield size={16} className="text-veya-lavender-bright" />}
+              {selectedSpot.type === 'store' && <Store size={16} className="text-veya-lavender-bright" />}
+              {selectedSpot.type === 'hospital' && <Hospital size={16} className="text-veya-lavender-bright" />}
+              {selectedSpot.type === 'metro' && <Building2 size={16} className="text-veya-lavender-bright" />}
+              {selectedSpot.type === 'cafe' && <Store size={16} className="text-veya-lavender-bright" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-veya-text truncate">{selectedSpot.name}</p>
+                {selectedSpot.verified && (
+                  <span className="flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 shrink-0">
+                    <Shield size={8} /> VERIFIED
+                  </span>
+                )}
+              </div>
+              <p className="mt-0.5 text-xs text-veya-text-dim">{selectedSpot.address} · {selectedSpot.distanceM}m</p>
+              {selectedSpot.open24h && <p className="text-[9px] font-semibold text-emerald-400/80">OPEN 24 HRS</p>}
+            </div>
+            <button onClick={() => setSelectedSpot(null)} className="text-veya-text-dim/40 p-1" aria-label="Close">
+              <X size={16} />
+            </button>
+          </div>
         </div>
       )}
 

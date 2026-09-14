@@ -274,6 +274,34 @@ export const incidentScoreImpact: Record<string, number> = {
   high: 40,
 };
 
+export type TravelMode = 'walking' | 'car' | 'metro';
+
+export const travelModeAdjustments: Record<TravelMode, {
+  durationMultiplier: number;
+  extraDurationMin: number;
+  factorPrefixes: string[];
+  extraFactors: string[];
+}> = {
+  walking: {
+    durationMultiplier: 1.8,
+    extraDurationMin: 0,
+    factorPrefixes: [],
+    extraFactors: ['Pedestrian-route focus: lighting and foot traffic matter most'],
+  },
+  car: {
+    durationMultiplier: 0.5,
+    extraDurationMin: 0,
+    factorPrefixes: [],
+    extraFactors: ['Drop-off point safety near destination is key', 'Main road lighting less relevant — focus on arrival area'],
+  },
+  metro: {
+    durationMultiplier: 0.7,
+    extraDurationMin: 8,
+    factorPrefixes: [],
+    extraFactors: ['Station well-lit and staffed', 'Platform crowd level: moderate', 'Short walk to/from nearest station included'],
+  },
+};
+
 export const stateList = [
   { id: 'delhi', name: 'Delhi' },
   { id: 'maharashtra', name: 'Maharashtra' },
