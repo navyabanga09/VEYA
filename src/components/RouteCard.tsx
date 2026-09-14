@@ -55,7 +55,7 @@ export function RouteCard({ route, selected, onSelect, timestamp }: RouteCardPro
       {route.factors.length > 0 && (
         <div className="mt-3 space-y-1">
           <p className="text-[10px] font-semibold text-veya-lavender-bright/60">AI-assessed factors:</p>
-          {route.factors.slice(0, 2).map((f, i) => (
+          {route.factors.slice(0, 3).map((f, i) => (
             <p key={i} className="text-xs text-veya-text-dim leading-relaxed">
               {f}
             </p>

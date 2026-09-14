@@ -88,7 +88,23 @@ export function NavigateScreen({
         .reduce((sum, i) => sum + (incidentScoreImpact[i.severity] ?? 20), 0);
       const newScore = Math.max(10, route.safetyScore - Math.round(totalPenalty / route.segments.length));
 
-      const adjustedFactors = [...modeAdj.extraFactors, ...route.factors];
+      const routeIncidents = incidents.filter((i) => route.segments.some((s) => s.id === i.segmentId));
+
+      let adjustedFactors = [...modeAdj.extraFactors, ...route.factors];
+
+      if (routeIncidents.length > 0) {
+        const reportCountLine = routeIncidents.length === 1
+          ? '1 report in the last week'
+          : `${routeIncidents.length} reports in the last week`;
+        adjustedFactors = adjustedFactors.map((f) =>
+          /^No recent incident reports$/.test(f) ? reportCountLine : f
+        );
+        const reportTypes = routeIncidents.map((i) => i.type);
+        const uniqueReportTypes = [...new Set(reportTypes)];
+        const reportLine = `Recently reported: ${uniqueReportTypes.join(', ')}`;
+        adjustedFactors = [...adjustedFactors, reportLine];
+      }
+
       return { ...route, segments: updatedSegments, safetyLevel: newLevel, safetyScore: newScore, durationMin: adjustedDuration, factors: adjustedFactors };
     });
   }, [incidents, travelMode]);

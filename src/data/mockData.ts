@@ -110,9 +110,10 @@ export const routes: RouteOption[] = [
     recommended: true,
     badge: 'Recommended',
     factors: [
-      'Well-lit roads along entire route',
-      'Moderate crowd density throughout',
+      'Well-lit throughout — main roads with consistent street lighting',
+      'Steady foot traffic until 11 PM',
       'No recent incident reports',
+      'Main road, high visibility throughout',
       '3 verified safety points en route',
     ],
     polyline: [
@@ -150,10 +151,10 @@ export const routes: RouteOption[] = [
     safetyScore: 62,
     recommended: false,
     factors: [
-      'Shorter route through side lanes',
-      'Poor lighting after 7 PM on 2 segments',
-      'Low crowd density in stretches',
-      '1 recent incident report (harassment)',
+      '2 poorly lit stretches after 7 PM',
+      'Quiet after 9 PM — low foot traffic',
+      '1 report in the last week',
+      'Includes narrow side lanes with limited visibility',
     ],
     polyline: [
       { x: 120, y: 340 },
@@ -188,9 +189,10 @@ export const routes: RouteOption[] = [
     safetyScore: 78,
     recommended: false,
     factors: [
-      'Good lighting on main roads',
-      'Active areas with steady crowd',
+      'Moderate lighting — main roads only, side stretches dim',
+      'Busy market area until 10 PM, then thins out',
       'No recent incident reports',
+      'Mix of main roads and residential lanes',
       '2 verified safety points en route',
     ],
     polyline: [
@@ -286,7 +288,7 @@ export const travelModeAdjustments: Record<TravelMode, {
     durationMultiplier: 1.8,
     extraDurationMin: 0,
     factorPrefixes: [],
-    extraFactors: ['Pedestrian-route focus: lighting and foot traffic matter most'],
+    extraFactors: [],
   },
   car: {
     durationMultiplier: 0.5,
