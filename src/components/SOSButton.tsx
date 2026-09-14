@@ -1,14 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, AlertTriangle, MapPin, Battery, Phone, Shield } from 'lucide-react';
-import type { DeliveryStatus, LocationPrecision } from '@/types';
+import type { DeliveryStatus, LocationPrecision, TrustedContact } from '@/types';
 import { useHaptic } from '@/hooks/useHaptic';
+
+export interface ContactDelivery {
+  contactId: string;
+  status: DeliveryStatus;
+}
 
 interface SOSButtonProps {
   onActivate: () => void;
   active: boolean;
   onDeactivate: () => void;
-  primaryContactName: string;
-  delivery: DeliveryStatus;
+  contacts: TrustedContact[];
+  deliveries: ContactDelivery[];
   precision: LocationPrecision;
   batteryLevel: number;
   locationName: string;
@@ -18,8 +23,8 @@ export function SOSButton({
   onActivate,
   active,
   onDeactivate,
-  primaryContactName,
-  delivery,
+  contacts,
+  deliveries,
   precision,
   batteryLevel,
   locationName,
@@ -71,10 +76,11 @@ export function SOSButton({
   }, [countdown > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (active) {
-    return <SOSActivePanel onDeactivate={onDeactivate} primaryContactName={primaryContactName} delivery={delivery} precision={precision} batteryLevel={batteryLevel} locationName={locationName} />;
+    return <SOSActivePanel onDeactivate={onDeactivate} contacts={contacts} deliveries={deliveries} precision={precision} batteryLevel={batteryLevel} locationName={locationName} />;
   }
 
   if (countdown > 0) {
+    const contactNames = contacts.map((c) => c.name).join(', ');
     return (
       <>
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={cancelHold} />
@@ -88,7 +94,7 @@ export function SOSButton({
             </div>
           </div>
           <p className="mt-8 text-center text-sm text-veya-text-dim">
-            Alert will be sent to <span className="font-bold text-veya-text">{primaryContactName}</span>
+            Alert will be sent to <span className="font-bold text-veya-text">{contactNames}</span>
           </p>
           <button
             onClick={cancelHold}
@@ -139,25 +145,24 @@ export function SOSButton({
 
 function SOSActivePanel({
   onDeactivate,
-  primaryContactName,
-  delivery,
+  contacts,
+  deliveries,
   precision,
   batteryLevel,
   locationName,
 }: {
   onDeactivate: () => void;
-  primaryContactName: string;
-  delivery: DeliveryStatus;
+  contacts: TrustedContact[];
+  deliveries: ContactDelivery[];
   precision: LocationPrecision;
   batteryLevel: number;
   locationName: string;
 }) {
-  const deliveryConfig = {
+  const deliveryConfig: Record<DeliveryStatus, { icon: string; text: string; color: string; bg: string }> = {
     sent: { icon: '✓', text: 'Sent', color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
     queued: { icon: '○', text: 'Queued', color: 'text-amber-400', bg: 'bg-amber-500/15' },
     failed: { icon: '✕', text: 'Failed', color: 'text-red-400', bg: 'bg-red-500/15' },
   };
-  const dc = deliveryConfig[delivery];
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-veya-bg/95 backdrop-blur-md animate-fade-in">
@@ -193,15 +198,29 @@ function SOSActivePanel({
             </span>
           </div>
 
-          <div className="flex items-center gap-3 rounded-xl border border-veya-border bg-veya-surface p-4">
-            <Shield size={20} className="text-veya-lavender-bright" />
-            <div className="flex-1">
-              <p className="text-xs text-veya-text-dim">Alert sent to</p>
-              <p className="text-sm font-bold text-veya-text">{primaryContactName}</p>
+          <div className="rounded-xl border border-veya-border bg-veya-surface p-4">
+            <p className="mb-2 text-xs text-veya-text-dim">Alert sent to</p>
+            <div className="space-y-2">
+              {contacts.map((contact) => {
+                const delivery = deliveries.find((d) => d.contactId === contact.id);
+                const status = delivery?.status ?? 'queued';
+                const dc = deliveryConfig[status];
+                return (
+                  <div key={contact.id} className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-veya-bg/50 shrink-0">
+                      <span className="text-xs font-bold text-veya-lavender-bright">{contact.avatar}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-veya-text truncate">{contact.name}</p>
+                      <p className="text-[10px] text-veya-text-dim/60">{contact.phone}</p>
+                    </div>
+                    <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${dc.bg} ${dc.color} shrink-0`}>
+                      <span>{dc.icon}</span> {dc.text}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-            <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${dc.bg} ${dc.color}`}>
-              <span>{dc.icon}</span> {dc.text}
-            </span>
           </div>
 
           <div className="flex items-center gap-3 rounded-xl border border-veya-border bg-veya-surface p-4">

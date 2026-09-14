@@ -6,9 +6,9 @@ import { NavigateScreen } from '@/screens/NavigateScreen';
 import { SafetyScreen } from '@/screens/SafetyScreen';
 import { MeScreen } from '@/screens/MeScreen';
 import { BottomNav } from '@/components/BottomNav';
-import { SOSButton } from '@/components/SOSButton';
+import { SOSButton, type ContactDelivery } from '@/components/SOSButton';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import type { NavTab, Location, IncidentReport, DeliveryStatus, LocationPrecision, SafeSpot } from '@/types';
+import type { NavTab, Location, IncidentReport, DeliveryStatus, LocationPrecision, SafeSpot, TrustedContact } from '@/types';
 import { trustedContacts, routes, safeSpots, currentLocation } from '@/data/mockData';
 
 function App() {
@@ -26,7 +26,7 @@ function App() {
 
   // SOS state
   const [sosActive, setSosActive] = useState(false);
-  const [sosDelivery, setSosDelivery] = useState<DeliveryStatus>('sent');
+  const [sosDeliveries, setSosDeliveries] = useState<ContactDelivery[]>([]);
   const [sosPrecision, setSosPrecision] = useState<LocationPrecision>('precise');
 
   // Cache route/risk/safe-spot data for offline use
@@ -50,17 +50,19 @@ function App() {
 
   const handleSOSActivate = useCallback(() => {
     setSosActive(true);
-    // Simulate delivery status
-    setSosDelivery('queued');
-    setTimeout(() => setSosDelivery('sent'), 1500);
-  }, []);
+    const initial: ContactDelivery[] = contacts.map((c) => ({ contactId: c.id, status: 'queued' as DeliveryStatus }));
+    setSosDeliveries(initial);
+    contacts.forEach((c, i) => {
+      setTimeout(() => {
+        setSosDeliveries((prev) => prev.map((d) => d.contactId === c.id ? { ...d, status: 'sent' as DeliveryStatus } : d));
+      }, 1000 + i * 500);
+    });
+  }, [contacts]);
 
   const handleSOSDeactivate = useCallback(() => {
     setSosActive(false);
-    setSosDelivery('sent');
+    setSosDeliveries([]);
   }, []);
-
-  const primaryContact = contacts.find((c) => c.primary) ?? contacts[0];
 
   if (showWelcome) {
     return <WelcomeScreen onStart={() => setShowWelcome(false)} />;
@@ -126,8 +128,8 @@ function App() {
         onActivate={handleSOSActivate}
         active={sosActive}
         onDeactivate={handleSOSDeactivate}
-        primaryContactName={primaryContact?.name ?? 'your trusted contact'}
-        delivery={sosDelivery}
+        contacts={contacts as TrustedContact[]}
+        deliveries={sosDeliveries}
         precision={sosPrecision}
         batteryLevel={batteryLevel}
         locationName={`${currentLocation.name}, ${currentLocation.area}`}

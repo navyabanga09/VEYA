@@ -554,17 +554,6 @@ export function NavigateScreen({
         )}
       </div>
 
-      {/* Report incident */}
-      <div className="px-5 mt-5">
-        <button
-          onClick={() => handleOpenReport()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3.5 text-sm font-bold text-amber-300 transition-colors active:scale-[0.98]"
-        >
-          <Flag size={16} />
-          REPORT AN ISSUE ON THIS ROUTE
-        </button>
-      </div>
-
       {/* Start navigation */}
       <div className="px-5 mt-5">
         <button
