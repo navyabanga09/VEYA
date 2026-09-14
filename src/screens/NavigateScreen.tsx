@@ -106,12 +106,27 @@ export function NavigateScreen({
     const target = new Date(nowDate);
     target.setHours(h, m, 0, 0);
     if (target < nowDate) target.setDate(target.getDate() + 1);
-    const diffMin = Math.round((target.getTime() - nowDate.getTime()) / 60000);
-    const canMakeIt = routes.map((r) => ({ route: r, canMake: r.durationMin <= diffMin }));
-    const anyCanMake = canMakeIt.some((c) => c.canMake);
-    const safeCanMake = canMakeIt.filter((c) => c.route.safetyLevel === 'safe' && c.canMake);
-    const onlyFastest = !safeCanMake.length && canMakeIt.filter((c) => c.canMake).every((c) => c.route.safetyLevel !== 'safe');
-    return { anyCanMake, safeCanMake: safeCanMake.length > 0, onlyFastest: onlyFastest && anyCanMake };
+    const targetMin = Math.round((target.getTime() - nowDate.getTime()) / 60000);
+    const TOLERANCE = 5;
+
+    const routeChecks = routes.map((r) => {
+      const arrivalMin = r.durationMin;
+      const diff = arrivalMin - targetMin;
+      const withinTolerance = Math.abs(diff) <= TOLERANCE;
+      return { route: r, arrivalMin, diff, withinTolerance };
+    });
+
+    const safeRoute = routeChecks.find((c) => c.route.id === 'route-smart');
+    const safeWithin = safeRoute?.withinTolerance ?? false;
+    const anyWithin = routeChecks.some((c) => c.withinTolerance);
+    const matchingRoutes = routeChecks.filter((c) => c.withinTolerance && c.route.id !== 'route-smart');
+
+    return {
+      anyWithin,
+      safeWithin,
+      safeRoute,
+      matchingRoutes,
+    };
   }, [targetArrival, routes]);
 
   const handleSelectRoute = useCallback((id: string) => {
@@ -405,8 +420,8 @@ export function NavigateScreen({
 
       {/* Arrival timing analysis */}
       {timingAnalysis && (
-        <div className="px-5 mt-3">
-          {!timingAnalysis.anyCanMake && (
+        <div className="px-5 mt-3 space-y-2">
+          {!timingAnalysis.anyWithin && (
             <div className="flex items-start gap-2.5 rounded-xl border border-veya-border bg-veya-surface/50 px-4 py-3">
               <Info size={14} className="mt-0.5 text-veya-text-dim shrink-0" />
               <p className="text-xs leading-relaxed text-veya-text-dim">
@@ -414,21 +429,40 @@ export function NavigateScreen({
               </p>
             </div>
           )}
-          {timingAnalysis.onlyFastest && (
-            <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
-              <AlertTriangle size={14} className="mt-0.5 text-amber-400 shrink-0" />
-              <p className="text-xs leading-relaxed text-amber-300">
-                This is the only option that meets your timing, but it has a higher risk rating. If you choose it, stay alert — avoid distractions, keep your phone accessible, and consider sharing your live location with a trusted contact.
-              </p>
-            </div>
-          )}
-          {timingAnalysis.safeCanMake && (
+          {timingAnalysis.safeWithin && (
             <div className="flex items-start gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
               <Check size={14} className="mt-0.5 text-emerald-400 shrink-0" />
               <p className="text-xs leading-relaxed text-emerald-300">
                 Safer routes can meet your arrival time. Smart move.
               </p>
             </div>
+          )}
+          {!timingAnalysis.safeWithin && timingAnalysis.matchingRoutes.length > 0 && (
+            <>
+              {timingAnalysis.matchingRoutes.map((mc) => (
+                <div key={mc.route.id} className="space-y-2">
+                  <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+                    <AlertTriangle size={14} className="mt-0.5 text-amber-400 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-amber-300">
+                        The {mc.route.label} route matches your arrival time.
+                      </p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-amber-300/80">
+                        This route has a higher risk rating. If you choose it, stay alert, avoid distractions, and consider sharing your live location with a trusted contact.
+                      </p>
+                    </div>
+                  </div>
+                  {timingAnalysis.safeRoute && (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+                      <Info size={14} className="mt-0.5 text-emerald-400 shrink-0" />
+                      <p className="text-xs leading-relaxed text-emerald-300/80">
+                        The Smart/Safer route arrives {Math.abs(timingAnalysis.safeRoute.diff)} minute{Math.abs(timingAnalysis.safeRoute.diff) === 1 ? '' : 's'} {timingAnalysis.safeRoute.diff > 0 ? 'later' : 'earlier'} but has a better safety profile — consider it if your schedule allows.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </>
           )}
         </div>
       )}
