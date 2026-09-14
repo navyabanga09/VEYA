@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, AlertTriangle, MapPin, Battery, Phone, Shield } from 'lucide-react';
+import { X, AlertTriangle, MapPin, Battery, Phone, Shield, Home, CheckCircle2 } from 'lucide-react';
 import type { DeliveryStatus, LocationPrecision, TrustedContact } from '@/types';
 import { useHaptic } from '@/hooks/useHaptic';
 
@@ -12,6 +12,7 @@ interface SOSButtonProps {
   onActivate: () => void;
   active: boolean;
   onDeactivate: () => void;
+  onBackHome: () => void;
   contacts: TrustedContact[];
   deliveries: ContactDelivery[];
   precision: LocationPrecision;
@@ -23,6 +24,7 @@ export function SOSButton({
   onActivate,
   active,
   onDeactivate,
+  onBackHome,
   contacts,
   deliveries,
   precision,
@@ -76,7 +78,7 @@ export function SOSButton({
   }, [countdown > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (active) {
-    return <SOSActivePanel onDeactivate={onDeactivate} contacts={contacts} deliveries={deliveries} precision={precision} batteryLevel={batteryLevel} locationName={locationName} />;
+    return <SOSActivePanel onDeactivate={onDeactivate} onBackHome={onBackHome} contacts={contacts} deliveries={deliveries} precision={precision} batteryLevel={batteryLevel} locationName={locationName} />;
   }
 
   if (countdown > 0) {
@@ -145,6 +147,7 @@ export function SOSButton({
 
 function SOSActivePanel({
   onDeactivate,
+  onBackHome,
   contacts,
   deliveries,
   precision,
@@ -152,12 +155,14 @@ function SOSActivePanel({
   locationName,
 }: {
   onDeactivate: () => void;
+  onBackHome: () => void;
   contacts: TrustedContact[];
   deliveries: ContactDelivery[];
   precision: LocationPrecision;
   batteryLevel: number;
   locationName: string;
 }) {
+  const allSent = deliveries.length > 0 && deliveries.every((d) => d.status === 'sent');
   const deliveryConfig: Record<DeliveryStatus, { icon: string; text: string; color: string; bg: string }> = {
     sent: { icon: '✓', text: 'Sent', color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
     queued: { icon: '○', text: 'Queued', color: 'text-amber-400', bg: 'bg-amber-500/15' },
@@ -165,8 +170,8 @@ function SOSActivePanel({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-veya-bg/95 backdrop-blur-md animate-fade-in">
-      <div className="safe-top flex-1 flex flex-col items-center justify-center px-6">
+    <div className="fixed inset-0 z-50 flex flex-col bg-veya-bg/95 backdrop-blur-md animate-fade-in overflow-y-auto">
+      <div className="safe-top flex-1 flex flex-col items-center justify-start px-6 py-8 min-h-full">
         <div className="relative mb-8 flex h-32 w-32 items-center justify-center">
           <div className="absolute inset-0 rounded-full bg-red-500/20 animate-pulse-ring" />
           <div className="relative flex h-24 w-24 items-center justify-center rounded-full border-4 border-red-500 bg-red-500/10">
@@ -185,6 +190,13 @@ function SOSActivePanel({
             "Hey, I might need help. Last known location: {locationName}. Battery: {batteryLevel}%."
           </p>
         </div>
+
+        {allSent && (
+          <div className="mt-3 w-full max-w-sm flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 animate-slide-up">
+            <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+            <p className="text-xs font-semibold text-emerald-300">Alert sent to all contacts. You can return to the main page.</p>
+          </div>
+        )}
 
         <div className="mt-4 w-full max-w-sm space-y-3">
           <div className="flex items-center gap-3 rounded-xl border border-veya-border bg-veya-surface p-4">
@@ -251,6 +263,14 @@ function SOSActivePanel({
         <p className="mt-4 text-center text-xs text-veya-text-dim/60">
           Sharing will stop immediately when you cancel.
         </p>
+
+        <button
+          onClick={onBackHome}
+          className="mt-3 flex w-full max-w-sm items-center justify-center gap-2 rounded-xl border border-veya-border bg-veya-surface/50 py-3.5 text-sm font-bold text-veya-text-dim transition-colors active:scale-95"
+        >
+          <Home size={18} />
+          BACK TO HOME
+        </button>
       </div>
     </div>
   );

@@ -32,6 +32,7 @@ export function NavigateScreen({
 }: NavigateScreenProps) {
   const [selectedRouteId, setSelectedRouteId] = useState('route-smart');
   const [showSegments, setShowSegments] = useState(false);
+  const [showReportsFor, setShowReportsFor] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportType, setReportType] = useState(incidentTypes[0]);
   const [reportNote, setReportNote] = useState('');
@@ -539,17 +540,45 @@ export function NavigateScreen({
 
         {showSegments && (
           <div className="mt-3 space-y-2 animate-slide-up">
-            {selectedRoute.segments.map((seg, i) => (
-              <div key={seg.id}>
-                <SegmentCard segment={seg} index={i} />
-                <button
-                  onClick={() => handleOpenReport(seg.id)}
-                  className="mt-1 ml-auto flex items-center gap-1 text-[10px] font-semibold text-amber-400/70 hover:text-amber-400"
-                >
-                  <Flag size={10} /> Report issue on this segment
-                </button>
-              </div>
-            ))}
+            {selectedRoute.segments.map((seg, i) => {
+              const segReports = incidents.filter((inc) => inc.segmentId === seg.id);
+              return (
+                <div key={seg.id}>
+                  <SegmentCard segment={seg} index={i} />
+                  <div className="mt-1 flex items-center justify-end gap-3">
+                    {segReports.length > 0 && (
+                      <button
+                        onClick={() => setShowReportsFor(showReportsFor === seg.id ? null : seg.id)}
+                        className="flex items-center gap-1 text-[10px] font-semibold text-veya-lavender-bright/70 hover:text-veya-lavender-bright"
+                      >
+                        <ChevronRight size={10} className={`transition-transform ${showReportsFor === seg.id ? 'rotate-90' : ''}`} />
+                        {segReports.length} past report{segReports.length > 1 ? 's' : ''}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleOpenReport(seg.id)}
+                      className="flex items-center gap-1 text-[10px] font-semibold text-amber-400/70 hover:text-amber-400"
+                    >
+                      <Flag size={10} /> Report issue on this segment
+                    </button>
+                  </div>
+                  {showReportsFor === seg.id && segReports.length > 0 && (
+                    <div className="mt-1.5 space-y-1.5 rounded-xl border border-amber-500/15 bg-amber-500/5 p-2.5">
+                      {segReports.slice().reverse().map((rep) => (
+                        <div key={rep.id} className="flex items-start gap-2 text-[10px]">
+                          <span className={`mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full ${rep.severity === 'high' ? 'bg-red-400' : rep.severity === 'medium' ? 'bg-amber-400' : 'bg-yellow-400'}`} />
+                          <div className="flex-1">
+                            <p className="font-semibold text-veya-text">{rep.type}</p>
+                            {rep.note && <p className="text-veya-text-dim/70 mt-0.5">{rep.note}</p>}
+                            <p className="text-veya-text-dim/40 mt-0.5">{new Date(rep.timestamp).toLocaleString()}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

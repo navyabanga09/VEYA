@@ -64,6 +64,12 @@ function App() {
     setSosDeliveries([]);
   }, []);
 
+  const handleSOSBackHome = useCallback(() => {
+    setSosActive(false);
+    setSosDeliveries([]);
+    setActiveTab('home');
+  }, []);
+
   if (showWelcome) {
     return <WelcomeScreen onStart={() => setShowWelcome(false)} />;
   }
@@ -128,6 +134,7 @@ function App() {
         onActivate={handleSOSActivate}
         active={sosActive}
         onDeactivate={handleSOSDeactivate}
+        onBackHome={handleSOSBackHome}
         contacts={contacts as TrustedContact[]}
         deliveries={sosDeliveries}
         precision={sosPrecision}
